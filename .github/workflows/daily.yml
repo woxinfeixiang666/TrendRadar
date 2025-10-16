@@ -2,7 +2,7 @@ name: TrendRadar Daily Push
 
 on:
   schedule:
-    - cron: '0 7 * * *'  # 每天早上7点执行
+    - cron: '0 23 * * *'  # UTC时间23点 = 台湾时间早上7点
   workflow_dispatch:      # 支持手动触发
 
 jobs:
@@ -26,23 +26,24 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run TrendRadar script
-        run: python main.py
+        run: python main.py  # 请确保该脚本生成 output/summary.txt
 
       - name: Push Telegram Hotspot Summary
         run: |
-          TEXT=$(cat output/summary.txt)  # 假设你的脚本将热点摘要写入此文件
-          curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
-            -d chat_id=${TELEGRAM_CHAT_ID} \
-            -d text="$TEXT" \
-            -d parse_mode="Markdown"
+          if [ -s output/summary.txt ]; then
+            TEXT=$(cat output/summary.txt)
+            echo "📤 正在发送消息：$TEXT"
+            curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
+              -d chat_id=${TELEGRAM_CHAT_ID} \
+              -d text="$TEXT" \
+              -d parse_mode="Markdown"
+          else
+            echo "⚠️ 未找到热点摘要或内容为空，跳过推送"
+          fi
 
       - name: Debug Telegram Push
-  run: |
-    TEXT=$(cat output/summary.txt)
-    echo "Message content: $TEXT"
-    curl -v -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
-      -d chat_id=${TELEGRAM_CHAT_ID} \
-      -d text="$TEXT" \
-      -d parse_mode="Markdown"
-
-
+        run: |
+          echo "📂 文件内容预览："
+          cat output/summary.txt || echo "❌ 文件不存在或无法读取"
+          echo "🔍 Chat ID: ${TELEGRAM_CHAT_ID}"
+          echo "🔍 Token: ${TELEGRAM_TOKEN:0:10}... (已隐藏)"
