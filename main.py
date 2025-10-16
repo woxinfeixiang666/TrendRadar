@@ -18,7 +18,7 @@ from typing import Dict, List, Tuple, Optional, Union
 import pytz
 import requests
 import yaml
-
+import requests
 
 VERSION = "2.4.4"
 
@@ -50,6 +50,22 @@ SMTP_CONFIGS = {
     "sohu.com": {"server": "smtp.sohu.com", "port": 587, "encryption": "TLS"},
 }
 
+def send_telegram_message(text: str, token: str, chat_id: str):
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
+    response = requests.post(url, data=payload)
+    if response.ok:
+        print("✅ Telegram 消息发送成功")
+    else:
+        print(f"❌ Telegram 推送失败: {response.text}")
+
+if CONFIG["ENABLE_NOTIFICATION"] and CONFIG["TELEGRAM_BOT_TOKEN"] and CONFIG["TELEGRAM_CHAT_ID"]:
+    summary_text = generate_summary_text()  # 你可以将热点摘要格式化为 Markdown 文本
+    send_telegram_message(summary_text, CONFIG["TELEGRAM_BOT_TOKEN"], CONFIG["TELEGRAM_CHAT_ID"])
 
 # === 配置管理 ===
 def load_config():
